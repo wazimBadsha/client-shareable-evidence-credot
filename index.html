@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ArabDeals QA Evidence Dashboard - Product Filters & 150 Bulk Products</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background: #f8f9fa; color: #333; line-height: 1.5; }
+    
+    /* Top Header Bar */
+    .top-bar { background: #1a73e8; color: #fff; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .top-bar h1 { font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+    .top-actions { display: flex; gap: 10px; }
+    .action-btn { background: #fff; color: #1a73e8; border: none; padding: 8px 14px; font-size: 12px; font-weight: 600; border-radius: 4px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: background 0.15s; }
+    .action-btn:hover { background: #e8f0fe; }
+    .action-btn.btn-danger { background: #ea4335; color: #fff; }
+    .action-btn.btn-danger:hover { background: #d93025; }
+
+    /* Metrics Ribbon */
+    .metrics-ribbon { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; padding: 20px 24px 10px; }
+    .metric-card { background: #fff; padding: 16px; border-radius: 6px; border: 1px solid #dadce0; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+    .metric-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #5f6368; font-weight: 600; }
+    .metric-value { font-size: 24px; font-weight: 700; color: #202124; margin-top: 4px; }
+    .metric-badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 12px; margin-top: 6px; }
+    .badge-success { background: #e6f4ea; color: #137333; }
+    .badge-info { background: #e8f0fe; color: #1a73e8; }
+
+    /* Container */
+    .container { padding: 10px 24px 30px; }
+    
+    /* Tabs Navigation (Google Sheets look) */
+    .sheet-tabs { display: flex; gap: 2px; border-bottom: 2px solid #dadce0; margin-bottom: 16px; overflow-x: auto; }
+    .sheet-tab { background: #e8eaed; border: none; padding: 10px 18px; font-size: 13px; font-weight: 600; color: #5f6368; cursor: pointer; border-radius: 6px 6px 0 0; transition: all 0.15s; }
+    .sheet-tab:hover { background: #dadce0; color: #202124; }
+    .sheet-tab.active { background: #fff; color: #1a73e8; border: 2px solid #dadce0; border-bottom: 2px solid #fff; margin-bottom: -2px; }
+
+    /* Tab Contents */
+    .tab-pane { display: none; background: #fff; border: 1px solid #dadce0; border-radius: 0 0 6px 6px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .tab-pane.active { display: block; }
+
+    /* Table Styling */
+    .evidence-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    .evidence-table th { background: #f1f3f4; color: #202124; text-align: left; padding: 10px 12px; font-weight: 600; border: 1px solid #dadce0; position: sticky; top: 0; }
+    .evidence-table td { padding: 10px 12px; border: 1px solid #dadce0; vertical-align: top; }
+    .evidence-table tr:hover { background: #f8f9fa; }
+    
+    .status-pass { background: #e6f4ea; color: #137333; font-weight: 700; padding: 3px 8px; border-radius: 4px; display: inline-block; font-size: 11px; }
+    .view-btn { background: #1a73e8; color: #fff; border: none; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
+    .view-btn:hover { background: #1557b0; }
+
+    /* Modal for Screenshot Preview */
+    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); overflow: auto; align-items: center; justify-content: center; }
+    .modal.active { display: flex; }
+    .modal-content-wrapper { position: relative; max-width: 92%; max-height: 92%; background: #fff; padding: 12px; border-radius: 6px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); display: flex; flex-direction: column; }
+    .modal-img { max-width: 100%; max-height: 80vh; object-fit: contain; border: 1px solid #dadce0; border-radius: 4px; }
+    .modal-close { position: absolute; top: 16px; right: 20px; font-size: 26px; font-weight: bold; color: #333; cursor: pointer; }
+    .modal-caption { padding: 10px 4px 4px; font-size: 14px; font-weight: 600; color: #202124; }
+
+    /* Video Player Grid */
+    .video-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .video-card { background: #f8f9fa; border: 1px solid #dadce0; border-radius: 6px; padding: 16px; }
+    .video-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 10px; color: #202124; }
+    .video-card video { width: 100%; border-radius: 4px; border: 1px solid #dadce0; }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <div class="top-bar">
+    <h1>
+      <span>📊</span> ArabDeals QA Verification Evidence & Client Report
+    </h1>
+    <div class="top-actions">
+      <a href="ArabDeals_Product_Filters_E2E_Test_Evidence.xlsx" download class="action-btn">
+        <span>📥</span> Download Excel (.xlsx)
+      </a>
+      <a href="ArabDeals_Product_Filters_E2E_Test_Evidence.csv" download class="action-btn">
+        <span>📄</span> Download CSV (Google Sheets)
+      </a>
+      <a href="ArabDeals_Product_Filters_QA_Evidence.zip" download class="action-btn btn-danger">
+        <span>📦</span> Download Complete Bundle (.zip)
+      </a>
+    </div>
+  </div>
+
+  <!-- Key Metrics Ribbon -->
+  <div class="metrics-ribbon">
+    <div class="metric-card">
+      <div class="metric-title">Test Scenarios</div>
+      <div class="metric-value">20 / 20</div>
+      <span class="metric-badge badge-success">100% Pass Rate</span>
+    </div>
+    <div class="metric-card">
+      <div class="metric-title">Bulk Products Ingested</div>
+      <div class="metric-value">150 Products</div>
+      <span class="metric-badge badge-info">Series 1 to 150</span>
+    </div>
+    <div class="metric-card">
+      <div class="metric-title">Total Sub-Variants</div>
+      <div class="metric-value">600 Variants</div>
+      <span class="metric-badge badge-info">3-5 variants / product</span>
+    </div>
+    <div class="metric-card">
+      <div class="metric-title">Brands Verified</div>
+      <div class="metric-value">12 Brands</div>
+      <span class="metric-badge badge-info">Apple, Samsung, Anker...</span>
+    </div>
+    <div class="metric-card">
+      <div class="metric-title">Category Trees</div>
+      <div class="metric-value">10 Trees</div>
+      <span class="metric-badge badge-info">3 Hierarchical Tiers</span>
+    </div>
+  </div>
+
+  <!-- Container with Tabbed Spreadsheet Interface -->
+  <div class="container">
+    <div class="sheet-tabs">
+      <button class="sheet-tab active" onclick="switchTab('summary')">Executive Summary</button>
+      <button class="sheet-tab" onclick="switchTab('vendor')">Vendor Dashboard (14 Tests)</button>
+      <button class="sheet-tab" onclick="switchTab('admin')">Admin Dashboard (6 Tests)</button>
+      <button class="sheet-tab" onclick="switchTab('videos')">Video Recordings (2 Runs)</button>
+      <button class="sheet-tab" onclick="switchTab('catalog')">150 Products Catalog Sample</button>
+    </div>
+
+    <!-- Tab 1: Executive Summary -->
+    <div id="tab-summary" class="tab-pane active">
+      <table class="evidence-table">
+        <thead>
+          <tr>
+            <th style="width: 30%;">Configuration / Metric</th>
+            <th>Verification Detail</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+            <tr>
+              <td><strong>Project Name</strong></td>
+              <td>ArabDeals E-Commerce Platform</td>
+            </tr>
+          
+            <tr>
+              <td><strong>Modules Tested</strong></td>
+              <td>Seller/Vendor Admin Dashboard & Platform Admin Dashboard</td>
+            </tr>
+          
+            <tr>
+              <td><strong>Feature Area</strong></td>
+              <td>Product Listing Multi-Tier Hierarchical Filters & UX Architecture</td>
+            </tr>
+          
+            <tr>
+              <td><strong>Execution Date</strong></td>
+              <td>2026-09-21</td>
+            </tr>
+          
+            <tr>
+              <td><strong>Test Framework</strong></td>
+              <td>Playwright E2E Headless Automation</td>
+            </tr>
+          
+            <tr>
+              <td><strong>Total Test Scenarios</strong></td>
+              <td>20</td>
+            </tr>
+          
+            <tr>
+              <td><strong>Passed</strong></td>
+              <td>20</td>
+            </tr>
+          
+            <tr>
+              <td><strong>Failed</strong></td>
+              <td>0</td>
+            </tr>
+          
+            <tr>
+              <td><strong>Success Rate</strong></td>
+              <td>100%</td>
+            </tr>
+          
+            <tr>
+              <td><strong>Bulk Ingested Main Products</strong></td>
+              <td>150 unique product codes (Series 1 - 150)</td>
+            </tr>
+          
+            <tr>
+              <td><strong>Bulk Ingested Sub-Variants</strong></td>
+              <td>600 variant records (3 to 5 variants per product)</td>
+            </tr>
+          
+            <tr>
+              <td><strong>Brands Covered</strong></td>
+              <td>12 (Apple, Samsung, Anker, Porodo, Baseus, Powerology, Riversong, Heatz, Sony, Xiaomi, Huawei, Belkin)</td>
+            </tr>
+          
+            <tr>
+              <td><strong>Hierarchical Categories</strong></td>
+              <td>10 Category trees (Charger & Cable, Mobile, Tablet, Smart Watches, Headsets, Powerbanks, Cases, Protectors, Holders, Storage)</td>
+            </tr>
+          
+            <tr>
+              <td><strong>Vendors Verified</strong></td>
+              <td>4 (TechZone LLC, Al-Baraka Tech, Muscat Mobile Hub, Sultanate Gadgets)</td>
+            </tr>
+          
+            <tr>
+              <td><strong>Key Innovations</strong></td>
+              <td>3-tier category drilldown, brand strip, status pill rows, Sort By dropdown, Price range filter, 1-click Reset, Admin vendor selector, Deduplicated variant grouping</td>
+            </tr>
+          
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Tab 2: Vendor Dashboard -->
+    <div id="tab-vendor" class="tab-pane">
+      <table class="evidence-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Feature</th>
+            <th>Scenario</th>
+            <th>Action Taken</th>
+            <th>Expected & Actual Result</th>
+            <th>Status</th>
+            <th>Screenshot Evidence</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+            <tr>
+              <td><strong>TC-V01</strong></td>
+              <td>Product Listing & Table Columns</td>
+              <td><strong>Default 150 products list view with pagination & 10 exact columns</strong></td>
+              <td>Loaded vendor dashboard /product with authenticated seller session</td>
+              <td>All 150 products rendered accurately without duplicate rows; Variant column shows variant count (3-5); Stock Status and Action buttons rendered</td>
+              <td><span class="status-pass">PASS</span></td>
+              <td>
+                <button class="view-btn" onclick="openModal('screenshots/01_product_listing_default_view.png', 'TC-V01: Default 150 products list view with pagination & 10 exact columns')">
+                  🔍 View Image
+                </button>
+              </td>
+            </tr>
+          
+            <tr>
+              <td><strong>TC-V02</strong></td>
+              <td>Hierarchical Categories</td>
+              <td><strong>Level 1 Main Category selection</strong></td>
+              <td>Clicked "CHARGER & CABLE" category tab button</td>
+              <td>Active red styling applied; Level 2 row appeared displaying HOME CHARGER, HOME ADAPTER, CABLES, etc.</td>
+              <td><span class="status-pass">PASS</span></td>
+              <td>
+                <button class="view-btn" onclick="openModal('screenshots/02_category_level1_charger_selected.png', 'TC-V02: Level 1 Main Category selection')">
+                  🔍 View Image
+                </button>
+              </td>
+            </tr>
+          
+            <tr>
+              <td><strong>TC-V03</strong></td>
+              <td>Hierarchical Categories</td>
+              <td><strong>Level 2 Subcategory selection</strong></td>
+              <td>Clicked "HOME ADAPTER" subcategory link</td>
+              <td>Active indicator applied; Level 3 row displayed USB A, USB C, USB A & C HOME ADAPTER</td>
+              <td><span class="status-pass">PASS</span></td>
+              <td>
+                <button class="view-btn" onclick="openModal('screenshots/03_category_level2_home_adapter_selected.png', 'TC-V03: Level 2 Subcategory selection')">
+                  🔍 View Image
+                </button>
+              </td>
+            </tr>
+          
+            <tr>
+              <td><strong>TC-V04</strong></td>
+              <td>Hierarchical Categories</td>
+              <td><strong>Level 3 Sub-subcategory selection</strong></td>
+              <td>Clicked "USB A & C HOME ADAPTER" sub-subcategory link</td>
+              <td>Table filtered reactively to matching category path</td>
+              <td><span class="status-pass">PASS</span></td>
+              <td>
+                <button class="view-btn" onclick="openModal('screenshots/04_category_level3_usb_ac_selected.png', 'TC-V04: Level 3 Sub-subcategory selection')">
+                  🔍 View Image
+                </button>
+              </td>
+            </tr>
+          
+            <tr>
+              <td><strong>TC-V05</strong></td>
+              <td>Brand Strip Filter</td>
+              <td><strong>Filter by specific brand from strip</strong></td>
+              <td>Clicked "PORODO" in the Brands > strip</td>
+              <td>Only Porodo branded products displayed in table</td>
+              <td><span class="status-pass">PASS</span></td>
+              <td>
+                <button class="view-btn" onclick="openModal('screenshots/05_brand_porodo_selected.png', 'TC-V05: Filter by specific brand from strip')">
+                  🔍 View Image
+                </button>
+              </td>
+            </tr>
+          
+            <tr>
+              <td><strong>TC-V06</strong></td>
+              <td>Approval Status</td>
+              <td><strong>Filter by admin approval status (UNDER REVIEW)</strong></td>
+              <td>Clicked "UNDER REVIEW" status pill</td>
+              <td>Only products under review displayed</td>
+              <td><span class="status-pass">PASS</span></td>
+              <td>
+                <button class="view-btn" onclick="openModal('screenshots/06_approval_under_review_filtered.png', 'TC-V06: Filter by admin approval status (UNDER REVIEW)')">
+                  🔍 View Image
+                </button>
+              </td>
+            </tr>
+          
+            <tr>
+              <td><strong>TC-V07</strong></td>
+              <td>Stock Status</td>
+              <td><strong>Filter by stock level (LOW STOCK)</strong></td>
+              <td>Clicked "LOW STOCK" pill in Stock Status group</td>
+              <td>Only products with low stock displayed; badge shows Low Stock</td>
+              <td><span class="status-pass">PASS</span></td>
+              <td>
+                <button class="view-btn" onclick="openModal('screenshots/07_stock_status_low_stock_filtered.png', 'TC-V07: Filter by stock level (LOW STOCK)')">
+                  🔍 View Image
+                </button>
+              </td>
+            </tr>
+          
+            <tr>
+              <td><strong>TC-V08</strong></td>
+              <td>Product Status</td>
+              <td><strong>Filter by listing status (ACTIVE)</strong></td>
+              <td>Clicked "ACTIVE" pill in Product Status group</td>
+              <td>All listed products show Product Status "Active"</td>
+              <td><span class="status-pass">PASS</span></td>
+              <td>
+                <button class="view-btn" onclick="openModal('screenshots/08_product_status_active_filtered.png', 'TC-V08: Filter by listing status (ACTIVE)')">
+                  🔍 View Image
+                </button>
+              </td>
+            </tr>
+          
+            <tr>
+              <td><strong>TC-V09</strong></td>
+              <td>Sort By</td>
+              <td><strong>Sort products by Price: Low to High</strong></td>
+              <td>Selected "Price: Low to High" from Sort By dropdown</td>
+              <td>Products displayed in ascending order of sellingPrice</td>
+              <td><span class="status-pass">PASS</span></td>
+              <td>
+                <button class="view-btn" onclick="openModal('screenshots/09_vendor_sort_price_asc.png', 'TC-V09: Sort products by Price: Low to High')">
+                  🔍 View Image
+                </button>
+              </td>
+            </tr>
+          
+            <tr>
+              <td><strong>TC-V10</strong></td>
+              <td>Price Range Filter</td>
+              <td><strong>Filter products within price range (10 - 100 OMR)</strong></td>
+              <td>Entered Min 10, Max 100 in Price inputs and clicked Go</td>
+              <td>Only products matching price bracket displayed</td>
+              <td><span class="status-pass">PASS</span></td>
+              <td>
+                <button class="view-btn" onclick="openModal('screenshots/10_vendor_price_range_filtered.png', 'TC-V10: Filter products within price range (10 - 100 OMR)')">
+                  🔍 View Image
+                </button>
+              </td>
+            </tr>
+          
+            <tr>
+              <td><strong>TC-V11</strong></td>
+              <td>Product Search</td>
+              <td><strong>Multi-field regex search by keyword</strong></td>
+              <td>Typed "Series" into search input</td>
+              <td>Instant reactive search matches filtered products</td>
+              <td><span class="status-pass">PASS</span></td>
+              <td>
+                <button class="view-btn" onclick="openModal('screenshots/11_search_product_filtered.png', 'TC-V11: Multi-field regex search by keyword')">
+                  🔍 View Image
+                </button>
+              </td>
+            </tr>
+          
+            <tr>
+              <td><strong>TC-V12</strong></td>
+              <td>Reset Filters</td>
+              <td><strong>One-click clear all active filters</strong></td>
+              <td>Clicked "✕ Reset (N)" button</td>
+              <td>All filter controls cleared and 150 products displayed in initial state</td>
+              <td><span class="status-pass">PASS</span></td>
+              <td>
+                <button class="view-btn" onclick="openModal('screenshots/12_vendor_reset_all_filters.png', 'TC-V12: One-click clear all active filters')">
+                  🔍 View Image
+                </button>
+              </td>
+            </tr>
+          
+            <tr>
+              <td><strong>TC-V13</strong></td>
+              <td>Pagination & Page Size</td>
+              <td><strong>Change page size to 20 and navigate to Page 2</strong></td>
+              <td>Selected "20" in page size selector and clicked Page 2 button</td>
+              <td>Page size changed smoothly; items 21-40 displayed</td>
+              <td><span class="status-pass">PASS</span></td>
+              <td>
+                <button class="view-btn" onclick="openModal('screenshots/13_vendor_pagination_page_size.png', 'TC-V13: Change page size to 20 and navigate to Page 2')">
+                  🔍 View Image
+                </button>
+              </td>
+            </tr>
+          
+            <tr>
+              <td><strong>TC-V14</strong></td>
+              <td>Inline Variant Edit</td>
+              <td><strong>Trigger variant inline modal via pencil icon</strong></td>
+              <td>Clicked red pencil edit button in Stock Status column</td>
+              <td>Modal opened with variant table showing 3-5 sub-variants for editing</td>
+              <td><span class="status-pass">PASS</span></td>
+              <td>
+                <button class="view-btn" onclick="openModal('screenshots/14_variant_inline_edit_modal_opened.png', 'TC-V14: Trigger variant inline modal via pencil icon')">
+                  🔍 View Image
+                </button>
+              </td>
+            </tr>
+          
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Tab 3: Admin Dashboard -->
+    <div id="tab-admin" class="tab-pane">
+      <table class="evidence-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Feature</th>
+            <th>Scenario</th>
+            <th>Action Taken</th>
+            <th>Expected & Actual Result</th>
+            <th>Status</th>
+            <th>Screenshot Evidence</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+            <tr>
+              <td><strong>TC-A01</strong></td>
+              <td>Admin Product Overview</td>
+              <td><strong>Admin default product listing with 150 bulk products</strong></td>
+              <td>Loaded admin dashboard /product with authenticated SUPER_ADMIN session</td>
+              <td>Admin table rendered successfully with 150 bulk products</td>
+              <td><span class="status-pass">PASS</span></td>
+              <td>
+                <button class="view-btn" onclick="openModal('screenshots/15_admin_dashboard_product_listing.png', 'TC-A01: Admin default product listing with 150 bulk products')">
+                  🔍 View Image
+                </button>
+              </td>
+            </tr>
+          
+            <tr>
+              <td><strong>TC-A02</strong></td>
+              <td>Admin Vendor Filter</td>
+              <td><strong>Filter products by specific Vendor / Seller</strong></td>
+              <td>Selected "TechZone Electronics LLC" in Vendor dropdown</td>
+              <td>Table filtered reactively to TechZone LLC products</td>
+              <td><span class="status-pass">PASS</span></td>
+              <td>
+                <button class="view-btn" onclick="openModal('screenshots/16_admin_vendor_filtered.png', 'TC-A02: Filter products by specific Vendor / Seller')">
+                  🔍 View Image
+                </button>
+              </td>
+            </tr>
+          
+            <tr>
+              <td><strong>TC-A03</strong></td>
+              <td>Brand & Approval Status</td>
+              <td><strong>Admin filters by brand ANKER and status APPROVED</strong></td>
+              <td>Clicked "ANKER" brand link and "APPROVED" status pill</td>
+              <td>Only approved Anker items displayed</td>
+              <td><span class="status-pass">PASS</span></td>
+              <td>
+                <button class="view-btn" onclick="openModal('screenshots/17_admin_brand_status_filtered.png', 'TC-A03: Admin filters by brand ANKER and status APPROVED')">
+                  🔍 View Image
+                </button>
+              </td>
+            </tr>
+          
+            <tr>
+              <td><strong>TC-A04</strong></td>
+              <td>Admin Sorting</td>
+              <td><strong>Sort products by Price: High to Low</strong></td>
+              <td>Selected "Price: High to Low" in admin Sort By dropdown</td>
+              <td>Products sorted descending by sellingPrice</td>
+              <td><span class="status-pass">PASS</span></td>
+              <td>
+                <button class="view-btn" onclick="openModal('screenshots/18_admin_sort_price_desc.png', 'TC-A04: Sort products by Price: High to Low')">
+                  🔍 View Image
+                </button>
+              </td>
+            </tr>
+          
+            <tr>
+              <td><strong>TC-A05</strong></td>
+              <td>Admin Reset Filters</td>
+              <td><strong>Reset all filters back to default</strong></td>
+              <td>Clicked "✕ Reset" button</td>
+              <td>All filters reset to initial default state</td>
+              <td><span class="status-pass">PASS</span></td>
+              <td>
+                <button class="view-btn" onclick="openModal('screenshots/19_admin_reset_filters.png', 'TC-A05: Reset all filters back to default')">
+                  🔍 View Image
+                </button>
+              </td>
+            </tr>
+          
+            <tr>
+              <td><strong>TC-A06</strong></td>
+              <td>Admin Pagination</td>
+              <td><strong>Navigate to Page 3 across 150 products</strong></td>
+              <td>Clicked Page 3 on admin pagination</td>
+              <td>Items 21-30 displayed; page 3 highlighted in red</td>
+              <td><span class="status-pass">PASS</span></td>
+              <td>
+                <button class="view-btn" onclick="openModal('screenshots/20_admin_pagination.png', 'TC-A06: Navigate to Page 3 across 150 products')">
+                  🔍 View Image
+                </button>
+              </td>
+            </tr>
+          
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Tab 4: Video Recordings -->
+    <div id="tab-videos" class="tab-pane">
+      <div class="video-grid">
+        <div class="video-card">
+          <h3>Seller / Vendor Dashboard Full Test Run (14 Scenarios)</h3>
+          <video controls preload="metadata">
+            <source src="videos/page@fff81e121c300e7c8f134cb896b61961.webm" type="video/webm">
+            Your browser does not support the video tag.
+          </video>
+        </div>
+        <div class="video-card">
+          <h3>Platform Admin Dashboard Full Test Run (6 Scenarios)</h3>
+          <video controls preload="metadata">
+            <source src="videos/page@ea8b19c66066eb636f172cfc4ba2a589.webm" type="video/webm">
+            Your browser does not support the video tag.
+          </video>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 5: Catalog Sample -->
+    <div id="tab-catalog" class="tab-pane">
+      <table class="evidence-table">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Product Name</th>
+            <th>Brand</th>
+            <th>Category Path</th>
+            <th>Price</th>
+            <th>Variants</th>
+            <th>Stock</th>
+            <th>Status</th>
+            <th>Active</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+            <tr>
+              <td><strong>30001</strong></td>
+              <td>Apple CHARGER & CABLE Series 1</td>
+              <td>Apple</td>
+              <td>CHARGER & CABLE / HOME ADAPTER</td>
+              <td>30 OMR</td>
+              <td>3</td>
+              <td>45</td>
+              <td>APPROVED</td>
+              <td>Active</td>
+            </tr>
+          
+            <tr>
+              <td><strong>30002</strong></td>
+              <td>Samsung MOBILE Series 2</td>
+              <td>Samsung</td>
+              <td>MOBILE / SMARTPHONE</td>
+              <td>240 OMR</td>
+              <td>4</td>
+              <td>28</td>
+              <td>UNDER_VERIFICATION</td>
+              <td>Active</td>
+            </tr>
+          
+            <tr>
+              <td><strong>30003</strong></td>
+              <td>Anker TABLET Series 3</td>
+              <td>Anker</td>
+              <td>TABLET / IPAD & ANDROID TABLET</td>
+              <td>180 OMR</td>
+              <td>5</td>
+              <td>12</td>
+              <td>REJECTED</td>
+              <td>Active</td>
+            </tr>
+          
+            <tr>
+              <td><strong>30004</strong></td>
+              <td>Porodo SMART WATCHES Series 4</td>
+              <td>Porodo</td>
+              <td>SMART WATCHES / FITNESS & CALLING</td>
+              <td>45 OMR</td>
+              <td>3</td>
+              <td>4</td>
+              <td>PENDING</td>
+              <td>Active</td>
+            </tr>
+          
+            <tr>
+              <td><strong>30005</strong></td>
+              <td>Baseus HEADSET & SPEAKER Series 5</td>
+              <td>Baseus</td>
+              <td>HEADSET & SPEAKER / WIRELESS EARBUDS</td>
+              <td>25 OMR</td>
+              <td>4</td>
+              <td>60</td>
+              <td>APPROVED</td>
+              <td>Active</td>
+            </tr>
+          
+            <tr>
+              <td><strong>30006</strong></td>
+              <td>Powerology POWERBANK Series 6</td>
+              <td>Powerology</td>
+              <td>POWERBANK / FAST CHARGING</td>
+              <td>35 OMR</td>
+              <td>5</td>
+              <td>0</td>
+              <td>UNDER_VERIFICATION</td>
+              <td>Active</td>
+            </tr>
+          
+            <tr>
+              <td><strong>30007</strong></td>
+              <td>Riversong COVER Series 7</td>
+              <td>Riversong</td>
+              <td>COVER / SILICONE & LEATHER</td>
+              <td>12 OMR</td>
+              <td>3</td>
+              <td>90</td>
+              <td>REJECTED</td>
+              <td>Deactive</td>
+            </tr>
+          
+            <tr>
+              <td><strong>30008</strong></td>
+              <td>Heatz PROTECTOR Series 8</td>
+              <td>Heatz</td>
+              <td>PROTECTOR / TEMPERED GLASS</td>
+              <td>8 OMR</td>
+              <td>4</td>
+              <td>0</td>
+              <td>PENDING</td>
+              <td>Active</td>
+            </tr>
+          
+            <tr>
+              <td><strong>30009</strong></td>
+              <td>Sony HOLDER Series 9</td>
+              <td>Sony</td>
+              <td>HOLDER / CAR & DESK MOUNT</td>
+              <td>15 OMR</td>
+              <td>5</td>
+              <td>35</td>
+              <td>APPROVED</td>
+              <td>Active</td>
+            </tr>
+          
+            <tr>
+              <td><strong>30010</strong></td>
+              <td>Xiaomi STORAGE Series 10</td>
+              <td>Xiaomi</td>
+              <td>STORAGE / HIGH SPEED FLASH DRIVE</td>
+              <td>20 OMR</td>
+              <td>3</td>
+              <td>40</td>
+              <td>UNDER_VERIFICATION</td>
+              <td>Active</td>
+            </tr>
+          
+            <tr>
+              <td><strong>30011</strong></td>
+              <td>Huawei CHARGER & CABLE Series 11</td>
+              <td>Huawei</td>
+              <td>CHARGER & CABLE / HOME ADAPTER</td>
+              <td>28 OMR</td>
+              <td>4</td>
+              <td>18</td>
+              <td>APPROVED</td>
+              <td>Active</td>
+            </tr>
+          
+            <tr>
+              <td><strong>30012</strong></td>
+              <td>Belkin MOBILE Series 12</td>
+              <td>Belkin</td>
+              <td>MOBILE / SMARTPHONE</td>
+              <td>310 OMR</td>
+              <td>5</td>
+              <td>5</td>
+              <td>PENDING</td>
+              <td>Active</td>
+            </tr>
+          
+            <tr>
+              <td><strong>30013</strong></td>
+              <td>Apple TABLET Series 13</td>
+              <td>Apple</td>
+              <td>TABLET / IPAD & ANDROID TABLET</td>
+              <td>420 OMR</td>
+              <td>3</td>
+              <td>22</td>
+              <td>APPROVED</td>
+              <td>Active</td>
+            </tr>
+          
+            <tr>
+              <td><strong>30014</strong></td>
+              <td>Samsung SMART WATCHES Series 14</td>
+              <td>Samsung</td>
+              <td>SMART WATCHES / FITNESS</td>
+              <td>95 OMR</td>
+              <td>4</td>
+              <td>30</td>
+              <td>UNDER_VERIFICATION</td>
+              <td>Deactive</td>
+            </tr>
+          
+            <tr>
+              <td><strong>30015</strong></td>
+              <td>Anker HEADSET & SPEAKER Series 15</td>
+              <td>Anker</td>
+              <td>HEADSET & SPEAKER / WIRELESS</td>
+              <td>55 OMR</td>
+              <td>5</td>
+              <td>75</td>
+              <td>APPROVED</td>
+              <td>Active</td>
+            </tr>
+          
+            <tr>
+              <td><strong>30016</strong></td>
+              <td>Porodo POWERBANK Series 16</td>
+              <td>Porodo</td>
+              <td>POWERBANK / FAST CHARGING</td>
+              <td>38 OMR</td>
+              <td>3</td>
+              <td>8</td>
+              <td>PENDING</td>
+              <td>Active</td>
+            </tr>
+          
+            <tr>
+              <td><strong>30017</strong></td>
+              <td>Baseus COVER Series 17</td>
+              <td>Baseus</td>
+              <td>COVER / SILICONE & LEATHER</td>
+              <td>14 OMR</td>
+              <td>4</td>
+              <td>110</td>
+              <td>APPROVED</td>
+              <td>Active</td>
+            </tr>
+          
+            <tr>
+              <td><strong>30018</strong></td>
+              <td>Powerology PROTECTOR Series 18</td>
+              <td>Powerology</td>
+              <td>PROTECTOR / TEMPERED GLASS</td>
+              <td>10 OMR</td>
+              <td>5</td>
+              <td>0</td>
+              <td>UNDER_VERIFICATION</td>
+              <td>Active</td>
+            </tr>
+          
+            <tr>
+              <td><strong>30019</strong></td>
+              <td>Riversong HOLDER Series 19</td>
+              <td>Riversong</td>
+              <td>HOLDER / CAR & DESK MOUNT</td>
+              <td>16 OMR</td>
+              <td>3</td>
+              <td>44</td>
+              <td>REJECTED</td>
+              <td>Active</td>
+            </tr>
+          
+            <tr>
+              <td><strong>30020</strong></td>
+              <td>Heatz STORAGE Series 20</td>
+              <td>Heatz</td>
+              <td>STORAGE / HIGH SPEED FLASH DRIVE</td>
+              <td>22 OMR</td>
+              <td>4</td>
+              <td>65</td>
+              <td>APPROVED</td>
+              <td>Active</td>
+            </tr>
+          
+            <tr>
+              <td><strong>30021</strong></td>
+              <td>Sony CHARGER & CABLE Series 21</td>
+              <td>Sony</td>
+              <td>CHARGER & CABLE / HOME ADAPTER</td>
+              <td>32 OMR</td>
+              <td>5</td>
+              <td>3</td>
+              <td>PENDING</td>
+              <td>Deactive</td>
+            </tr>
+          
+            <tr>
+              <td><strong>30022</strong></td>
+              <td>Xiaomi MOBILE Series 22</td>
+              <td>Xiaomi</td>
+              <td>MOBILE / SMARTPHONE</td>
+              <td>190 OMR</td>
+              <td>3</td>
+              <td>50</td>
+              <td>APPROVED</td>
+              <td>Active</td>
+            </tr>
+          
+            <tr>
+              <td><strong>30023</strong></td>
+              <td>Huawei TABLET Series 23</td>
+              <td>Huawei</td>
+              <td>TABLET / IPAD & ANDROID TABLET</td>
+              <td>260 OMR</td>
+              <td>4</td>
+              <td>14</td>
+              <td>UNDER_VERIFICATION</td>
+              <td>Active</td>
+            </tr>
+          
+            <tr>
+              <td><strong>30024</strong></td>
+              <td>Belkin SMART WATCHES Series 24</td>
+              <td>Belkin</td>
+              <td>SMART WATCHES / FITNESS</td>
+              <td>68 OMR</td>
+              <td>5</td>
+              <td>0</td>
+              <td>APPROVED</td>
+              <td>Active</td>
+            </tr>
+          
+            <tr>
+              <td><strong>30025</strong></td>
+              <td>Apple HEADSET & SPEAKER Series 25</td>
+              <td>Apple</td>
+              <td>HEADSET & SPEAKER / WIRELESS</td>
+              <td>110 OMR</td>
+              <td>3</td>
+              <td>85</td>
+              <td>APPROVED</td>
+              <td>Active</td>
+            </tr>
+          
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Screenshot Modal -->
+  <div id="imgModal" class="modal" onclick="closeModal(event)">
+    <div class="modal-content-wrapper" onclick="event.stopPropagation()">
+      <span class="modal-close" onclick="closeModal(event)">&times;</span>
+      <div class="modal-caption" id="modalCaption"></div>
+      <img id="modalImg" class="modal-img" src="" alt="Screenshot Evidence">
+    </div>
+  </div>
+
+  <script>
+    function switchTab(tabId) {
+      document.querySelectorAll('.sheet-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+      
+      const activeBtn = Array.from(document.querySelectorAll('.sheet-tab')).find(b => b.getAttribute('onclick').includes(tabId));
+      if (activeBtn) activeBtn.classList.add('active');
+      
+      const pane = document.getElementById('tab-' + tabId);
+      if (pane) pane.classList.add('active');
+    }
+
+    function openModal(imgSrc, caption) {
+      const modal = document.getElementById('imgModal');
+      const img = document.getElementById('modalImg');
+      const cap = document.getElementById('modalCaption');
+      img.src = imgSrc;
+      cap.innerText = caption;
+      modal.classList.add('active');
+    }
+
+    function closeModal(e) {
+      document.getElementById('imgModal').classList.remove('active');
+    }
+  </script>
+</body>
+</html>
